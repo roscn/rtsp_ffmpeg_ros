@@ -39,7 +39,7 @@
 using namespace std;
 
 FFmpegDecoder::FFmpegDecoder(std::string path, ros::NodeHandle &nh)
-  : bConnected(false), decode_thread_running(false)
+    : bConnected(false), decode_thread_running(false)
 {
   nh_ = nh;
   this->path = path;
@@ -60,14 +60,14 @@ void FFmpegDecoder::connect()
   pFormatCtx->max_delay = 0;
   pFormatCtx->probesize = 64;
 
-  AVDictionary *avdic=NULL;
-  char option_key[]="rtsp_transport";
-  char option_value[]="tcp";
-  av_dict_set(&avdic,option_key,option_value,0);
-  char option_key2[]="max_delay";
-  char option_value2[]="0";
-  av_dict_set(&avdic,option_key2,option_value2,0);
-  
+  AVDictionary *avdic = NULL;
+  char option_key[] = "rtsp_transport";
+  char option_value[] = "tcp";
+  av_dict_set(&avdic, option_key, option_value, 0);
+  char option_key2[] = "max_delay";
+  char option_value2[] = "0";
+  av_dict_set(&avdic, option_key2, option_value2, 0);
+
   //char option_key3[]="fflags";
   //char option_value3[]="nobuffer";
   //av_dict_set(&avdic,option_key3,option_value3,0);
@@ -88,18 +88,17 @@ void FFmpegDecoder::connect()
   {
     std::cout << "can't open the file." << std::endl;
     bConnected = false;
-    return ;
+    return;
   }
 
   if (avformat_find_stream_info(pFormatCtx, NULL) < 0)
   {
     std::cout << "can't find stream infomation" << std::endl;
     bConnected = false;
-    return ;
+    return;
   }
 
   videoStream = -1;
-
 
   for (unsigned int i = 0; i < pFormatCtx->nb_streams; i++)
   {
@@ -113,7 +112,7 @@ void FFmpegDecoder::connect()
   {
     std::cout << "can't find a video stream" << std::endl;
     bConnected = false;
-    return ;
+    return;
   }
 
   pCodecCtx = pFormatCtx->streams[videoStream]->codec;
@@ -133,7 +132,7 @@ void FFmpegDecoder::connect()
   pCodecCtx->delay = 0;
   pCodecCtx->max_b_frames = 0;
   pCodecCtx->refs = 3;
-  pCodecCtx->gop_size = 25./1.;
+  pCodecCtx->gop_size = 25. / 1.;
   pCodecCtx->me_subpel_quality = 5;
   pCodecCtx->trellis = 0;
 
@@ -141,31 +140,30 @@ void FFmpegDecoder::connect()
   {
     std::cout << "can't find a codec" << std::endl;
     bConnected = false;
-    return ;
+    return;
   }
 
   if (avcodec_open2(pCodecCtx, pCodec, NULL) < 0)
   {
     std::cout << "can't open a codec" << std::endl;
     bConnected = false;
-    return ;
+    return;
   }
 
   pFrame = av_frame_alloc();
   pFrameBGR = av_frame_alloc();
 
-
   imgConvertCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height,
-                   pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height,
-                   AV_PIX_FMT_BGR24, SWS_BICUBIC, NULL, NULL, NULL);
+                                 pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height,
+                                 AV_PIX_FMT_BGR24, SWS_BICUBIC, NULL, NULL, NULL);
 
-  int numBytes = avpicture_get_size(AV_PIX_FMT_BGR24, pCodecCtx->width,pCodecCtx->height);
+  int numBytes = avpicture_get_size(AV_PIX_FMT_BGR24, pCodecCtx->width, pCodecCtx->height);
 
-  outBuffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
-  avpicture_fill((AVPicture *) pFrameBGR, outBuffer, AV_PIX_FMT_BGR24,
-           pCodecCtx->width, pCodecCtx->height);
+  outBuffer = (uint8_t *)av_malloc(numBytes * sizeof(uint8_t));
+  avpicture_fill((AVPicture *)pFrameBGR, outBuffer, AV_PIX_FMT_BGR24,
+                 pCodecCtx->width, pCodecCtx->height);
 
-  packet = (AVPacket *) malloc(sizeof(AVPacket));
+  packet = (AVPacket *)malloc(sizeof(AVPacket));
   av_new_packet(packet, pCodecCtx->width * pCodecCtx->height);
 
   bConnected = true;
@@ -182,25 +180,26 @@ void FFmpegDecoder::decode()
     if (packet->stream_index == videoStream)
     {
       int got_picture = 0;
-      int ret = avcodec_decode_video2(pCodecCtx, pFrame, &got_picture,packet);
+      int ret = avcodec_decode_video2(pCodecCtx, pFrame, &got_picture, packet);
 
       if (ret < 0)
       {
-        std::cout << "decode error.\n" << std::endl;
-        break ;
+        std::cout << "decode error.\n"
+                  << std::endl;
+        break;
       }
 
       if (got_picture)
       {
         sws_scale(imgConvertCtx,
-              (uint8_t const * const *) pFrame->data,
-              pFrame->linesize, 0, pCodecCtx->height, pFrameBGR->data,
-              pFrameBGR->linesize);
+                  (uint8_t const *const *)pFrame->data,
+                  pFrame->linesize, 0, pCodecCtx->height, pFrameBGR->data,
+                  pFrameBGR->linesize);
 
         cv::Mat img(pFrame->height,
-              pFrame->width,
-              CV_8UC3,
-              pFrameBGR->data[0]);
+                    pFrame->width,
+                    CV_8UC3,
+                    pFrameBGR->data[0]);
 
         mtx.lock();
         decodedImgBuf.push_back(img);

@@ -19,5 +19,5 @@
     </node>
   </group>
 
-  <include file="$(find image_processor)/launch/image_resize.launch" />
+  <!-- <include file="$(find image_processor)/launch/image_resize.launch" /> -->
 </launch>
