@@ -1,41 +1,6 @@
-/*
- * Software License Agreement (Modified BSD License)
- *
- *  Copyright (c) 2016, PAL Robotics, S.L.
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- *     copyright notice, this list of conditions and the following
- *     disclaimer in the documentation and/or other materials provided
- *     with the distribution.
- *   * Neither the name of PAL Robotics, S.L. nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- *
- * @author Alec Gurman
- */
 
 #include <ros/ros.h>
-#include <nodelet/nodelet.h>
+// #include <nodelet/nodelet.h>
 #include <dynamic_reconfigure/server.h>
 #include <image_transport/image_transport.h>
 #include <camera_info_manager/camera_info_manager.h>
@@ -57,8 +22,47 @@ namespace fs = boost::filesystem;
 namespace rtsp_ffmpeg
 {
 
-  class RTSPFFmpegNodelet : public nodelet::Nodelet
+  class RTSPFFmpeg
   {
+  public:
+    RTSPFFmpeg()
+    {
+      ROS_INFO_STREAM("onInit: ");
+      nh.reset(new ros::NodeHandle());
+      pnh.reset(new ros::NodeHandle("~"));
+      subscriber_num = 0;
+
+      // provider can be an url (e.g.: rtsp://10.0.0.1:554) or a number of device, (e.g.: 0 would be /dev/video0)
+      pnh->param<std::string>("rtsp_url", rtsp_url, "rtsp://");
+      ROS_INFO_STREAM("rtsp_url: " << rtsp_url);
+      // set parameters from dynamic reconfigure server
+      dyn_srv = boost::make_shared<dynamic_reconfigure::Server<RTSPFFmpegConfig>>(*pnh);
+      auto f = boost::bind(&RTSPFFmpeg::configCallback, this, _1, _2);
+      dyn_srv->setCallback(f);
+
+      subscriber_num = 0;
+      image_transport::SubscriberStatusCallback connect_cb =
+          boost::bind(&RTSPFFmpeg::connectionCallback, this, _1);
+      ros::SubscriberStatusCallback info_connect_cb =
+          boost::bind(&RTSPFFmpeg::infoConnectionCallback, this, _1);
+      image_transport::SubscriberStatusCallback disconnect_cb =
+          boost::bind(&RTSPFFmpeg::disconnectionCallback, this, _1);
+      ros::SubscriberStatusCallback info_disconnect_cb =
+          boost::bind(&RTSPFFmpeg::infoDisconnectionCallback, this, _1);
+      pub = image_transport::ImageTransport(*nh).advertiseCamera(
+          "image_raw", 1,
+          connect_cb, disconnect_cb,
+          info_connect_cb, info_disconnect_cb,
+          ros::VoidPtr(), false);
+      ROS_INFO_STREAM("finish onInit: ");
+    }
+
+    ~RTSPFFmpeg()
+    {
+      if (subscriber_num > 0)
+        subscriber_num = 0;
+      unsubscribe();
+    }
 
   protected:
     boost::shared_ptr<ros::NodeHandle> nh, pnh;
@@ -99,7 +103,7 @@ namespace rtsp_ffmpeg
 
     virtual void do_capture()
     {
-      NODELET_DEBUG("Capture thread started");
+      ROS_DEBUG("Capture thread started");
       cv::Mat frame;
       RTSPFFmpegConfig latest_config = config;
 
@@ -167,7 +171,7 @@ namespace rtsp_ffmpeg
           }
           catch (std::runtime_error &ex)
           {
-            NODELET_ERROR_STREAM("cannot change encoding to " << latest_config.output_encoding
+            ROS_ERROR_STREAM("cannot change encoding to " << latest_config.output_encoding
                                                               << ": " << ex.what());
           }
         }
@@ -175,7 +179,7 @@ namespace rtsp_ffmpeg
         // Create a default camera info if we didn't get a stored one on initialization
         if (cam_info_msg.distortion_model == "")
         {
-          NODELET_WARN_STREAM("No calibration file given, publishing a reasonable default camera info.");
+          ROS_WARN_STREAM("No calibration file given, publishing a reasonable default camera info.");
           cam_info_msg = get_default_camera_info_from_image(msg);
         }
 
@@ -196,28 +200,28 @@ namespace rtsp_ffmpeg
 
       // Initialize decoder
       decoder.reset(new FFmpegDecoder(rtsp_url, *nh));
-      NODELET_INFO_STREAM("Connecting to decoder with url: " << rtsp_url);
+      ROS_INFO_STREAM("Connecting to decoder with url: " << rtsp_url);
 
       decoder->connect();
-      NODELET_INFO_STREAM("Finish Connecting to decoder with url: " << rtsp_url);      
+      ROS_INFO_STREAM("Finish Connecting to decoder with url: " << rtsp_url);
       if (decoder->isConnected())
       {
-        NODELET_INFO_STREAM("Decoder has connected, starting threads!");
+        ROS_INFO_STREAM("Decoder has connected, starting threads!");
         try
         {
           decode_thread = boost::thread(
               boost::bind(&FFmpegDecoder::decode, decoder));
           capture_thread = boost::thread(
-              boost::bind(&RTSPFFmpegNodelet::do_capture, this));
+              boost::bind(&RTSPFFmpeg::do_capture, this));
         }
         catch (std::exception &e)
         {
-          NODELET_ERROR_STREAM("Failed to start capture thread: " << e.what());
+          ROS_ERROR_STREAM("Failed to start capture thread: " << e.what());
         }
       }
       else
       {
-        NODELET_ERROR_STREAM("Decoder failed to connect!");
+        ROS_ERROR_STREAM("Decoder failed to connect!");
       }
     }
 
@@ -237,7 +241,7 @@ namespace rtsp_ffmpeg
     {
       std::lock_guard<std::mutex> lock(s_mutex);
       subscriber_num++;
-      NODELET_DEBUG_STREAM("Got connection callback, current subscribers: " << subscriber_num);
+      ROS_DEBUG_STREAM("Got connection callback, current subscribers: " << subscriber_num);
       if (subscriber_num == 1)
       {
         subscribe();
@@ -255,7 +259,7 @@ namespace rtsp_ffmpeg
       }
 
       subscriber_num--;
-      NODELET_DEBUG_STREAM("Got disconnection callback, current subscribers: " << subscriber_num);
+      ROS_DEBUG_STREAM("Got disconnection callback, current subscribers: " << subscriber_num);
       if (subscriber_num == 0)
       {
         unsubscribe();
@@ -264,19 +268,19 @@ namespace rtsp_ffmpeg
 
     virtual void connectionCallback(const image_transport::SingleSubscriberPublisher &)
     {
-      NODELET_INFO_STREAM("rtsp_url: " );      
+      ROS_INFO_STREAM("rtsp_url: ");
       connectionCallbackImpl();
     }
 
     virtual void infoConnectionCallback(const ros::SingleSubscriberPublisher &)
     {
-      NODELET_INFO_STREAM("infoConnectionCallback: " );      
+      ROS_INFO_STREAM("infoConnectionCallback: ");
       connectionCallbackImpl();
     }
 
     virtual void disconnectionCallback(const image_transport::SingleSubscriberPublisher &)
     {
-      NODELET_INFO_STREAM("disconnectionCallback: " );            
+      ROS_INFO_STREAM("disconnectionCallback: ");
       disconnectionCallbackImpl();
     }
 
@@ -287,11 +291,11 @@ namespace rtsp_ffmpeg
 
     virtual void configCallback(RTSPFFmpegConfig &new_config, uint32_t level)
     {
-      NODELET_DEBUG("configCallback");
+      ROS_DEBUG("configCallback");
 
       if (new_config.fps > new_config.set_camera_fps)
       {
-        NODELET_WARN_STREAM(
+        ROS_WARN_STREAM(
             "Asked to publish at 'fps' (" << new_config.fps
                                           << ") which is higher than the 'set_camera_fps' (" << new_config.set_camera_fps << "), we can't publish faster than the camera provides images.");
         new_config.fps = new_config.set_camera_fps;
@@ -304,61 +308,29 @@ namespace rtsp_ffmpeg
       }
 
       // show current configuration
-      NODELET_INFO_STREAM("Camera name: " << new_config.camera_name);
-      NODELET_INFO_STREAM("Provided camera_info_url: '" << new_config.camera_info_url << "'");
-      NODELET_INFO_STREAM("Publishing with frame_id: " << new_config.frame_id);
-      NODELET_INFO_STREAM("Flip horizontal image is: " << ((new_config.flip_horizontal) ? "true" : "false"));
-      NODELET_INFO_STREAM("Flip vertical image is: " << ((new_config.flip_vertical) ? "true" : "false"));
+      ROS_INFO_STREAM("Camera name: " << new_config.camera_name);
+      ROS_INFO_STREAM("Provided camera_info_url: '" << new_config.camera_info_url << "'");
+      ROS_INFO_STREAM("Publishing with frame_id: " << new_config.frame_id);
+      ROS_INFO_STREAM("Flip horizontal image is: " << ((new_config.flip_horizontal) ? "true" : "false"));
+      ROS_INFO_STREAM("Flip vertical image is: " << ((new_config.flip_vertical) ? "true" : "false"));
 
-      NODELET_DEBUG_STREAM("subscriber_num: " << subscriber_num << " and level: " << level);
+      ROS_DEBUG_STREAM("subscriber_num: " << subscriber_num << " and level: " << level);
       if (subscriber_num > 0 && (level & 0x1))
       {
-        NODELET_DEBUG("New dynamic_reconfigure config received on a parameter with configure level 1, unsubscribing and subscribing");
+        ROS_DEBUG("New dynamic_reconfigure config received on a parameter with configure level 1, unsubscribing and subscribing");
         unsubscribe();
         subscribe();
       }
     }
-
-    virtual void onInit()
-    {
-      NODELET_INFO_STREAM("onInit: " );       
-      nh.reset(new ros::NodeHandle(getNodeHandle()));
-      pnh.reset(new ros::NodeHandle(getPrivateNodeHandle()));
-      subscriber_num = 0;
-
-      // provider can be an url (e.g.: rtsp://10.0.0.1:554) or a number of device, (e.g.: 0 would be /dev/video0)
-      pnh->param<std::string>("rtsp_url", rtsp_url, "rtsp://");
-      NODELET_INFO_STREAM("rtsp_url: " <<rtsp_url);   
-      // set parameters from dynamic reconfigure server
-      dyn_srv = boost::make_shared<dynamic_reconfigure::Server<RTSPFFmpegConfig>>(*pnh);
-      auto f = boost::bind(&RTSPFFmpegNodelet::configCallback, this, _1, _2);
-      dyn_srv->setCallback(f);
-
-      subscriber_num = 0;
-      image_transport::SubscriberStatusCallback connect_cb =
-          boost::bind(&RTSPFFmpegNodelet::connectionCallback, this, _1);
-      ros::SubscriberStatusCallback info_connect_cb =
-          boost::bind(&RTSPFFmpegNodelet::infoConnectionCallback, this, _1);
-      image_transport::SubscriberStatusCallback disconnect_cb =
-          boost::bind(&RTSPFFmpegNodelet::disconnectionCallback, this, _1);
-      ros::SubscriberStatusCallback info_disconnect_cb =
-          boost::bind(&RTSPFFmpegNodelet::infoDisconnectionCallback, this, _1);
-      pub = image_transport::ImageTransport(*nh).advertiseCamera(
-          "image_raw", 1,
-          connect_cb, disconnect_cb,
-          info_connect_cb, info_disconnect_cb,
-          ros::VoidPtr(), false);
-      NODELET_INFO_STREAM("finish onInit: " );                 
-    }
-
-    virtual ~RTSPFFmpegNodelet()
-    {
-      if (subscriber_num > 0)
-        subscriber_num = 0;
-      unsubscribe();
-    }
   };
-} // namespace
+}
 
-#include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(rtsp_ffmpeg::RTSPFFmpegNodelet, nodelet::Nodelet)
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "rtsp_ffmpeg_node");
+
+  rtsp_ffmpeg::RTSPFFmpeg rtsp_ffmpeg;
+  ros::spin();
+
+  return 0;
+}

@@ -11,7 +11,7 @@
   <arg name="flip_vertical" default="false" />
 
   <group ns="$(arg camera_name)">
-    <node pkg="rtsp_ffmpeg" type="rtsp_ffmpeg" name="$(arg camera_name)_stream" output="screen"> 
+    <node pkg="rtsp_ffmpeg" type="ros_rtsp_ffmpeg_node" name="$(arg camera_name)_stream" output="screen"> 
       <remap from="camera" to="image_raw" />
       <param name="camera_name" type="string" value="$(arg camera_name)" />
       <param name="rtsp_url" type="string" value="$(arg rtsp_url)" />

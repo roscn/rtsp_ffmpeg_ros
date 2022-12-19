@@ -63,6 +63,10 @@ add_executable(rtsp_ffmpeg_node src/rtsp_ffmpeg_node.cpp)
 target_link_libraries(rtsp_ffmpeg_node ${catkin_LIBRARIES})
 set_target_properties(rtsp_ffmpeg_node PROPERTIES OUTPUT_NAME rtsp_ffmpeg)
 
+add_executable(ros_rtsp_ffmpeg_node src/main_rtsp_ffmpeg.cpp    src/ffmpegdecoder.cpp)
+target_link_libraries(ros_rtsp_ffmpeg_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY} ${SWSCALE_LIBRARY} ${AVCODEC_LIBRARY} )
+
+
 # install(TARGETS video_stream_node ${PROJECT_NAME}
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
