@@ -1,7 +1,7 @@
 
 #include <ros/ros.h>
 // #include <nodelet/nodelet.h>
-#include <dynamic_reconfigure/server.h>
+//#include <dynamic_reconfigure/server.h>
 #include <image_transport/image_transport.h>
 #include <camera_info_manager/camera_info_manager.h>
 #include <opencv2/highgui/highgui.hpp>
@@ -14,13 +14,41 @@
 #include <boost/thread/thread.hpp>
 #include <queue>
 #include <mutex>
-#include <rtsp_ffmpeg/RTSPFFmpegConfig.h>
+//#include <rtsp_ffmpeg/RTSPFFmpegConfig.h>
 #include <rtsp_ffmpeg/ffmpegdecoder.h>
 
 namespace fs = boost::filesystem;
 
 namespace rtsp_ffmpeg
 {
+
+  class RTSPFFmpegConfig
+  {
+  public:
+    RTSPFFmpegConfig(){};
+
+    std::string camera_name = "camera";
+    double set_camera_fps = 30.0;
+    int buffer_queue_size = 100;
+    double fps = 240.0;
+    std::string frame_id = "camera";
+    std::string camera_info_url = "";
+    bool flip_horizontal = false;
+    bool flip_vertical = false;
+    int width = 0;
+    int height = 0;
+    double brightness = 0.5019607843137255;
+    double contrast = 0.12549019607843137;
+    double hue = 0.5;
+    double saturation = 0.64;
+    double exposure = 0.5;
+    bool auto_exposure = true;
+    bool loop_videofile = false;
+    bool reopen_on_read_failure = false;
+    std::string output_encoding = "bgr8";
+    int start_frame = 0;
+    int stop_frame = -1;
+  };
 
   class RTSPFFmpeg
   {
@@ -35,10 +63,6 @@ namespace rtsp_ffmpeg
       // provider can be an url (e.g.: rtsp://10.0.0.1:554) or a number of device, (e.g.: 0 would be /dev/video0)
       pnh->param<std::string>("rtsp_url", rtsp_url, "rtsp://");
       ROS_INFO_STREAM("rtsp_url: " << rtsp_url);
-      // set parameters from dynamic reconfigure server
-      dyn_srv = boost::make_shared<dynamic_reconfigure::Server<RTSPFFmpegConfig>>(*pnh);
-      auto f = boost::bind(&RTSPFFmpeg::configCallback, this, _1, _2);
-      dyn_srv->setCallback(f);
 
       subscriber_num = 0;
       image_transport::SubscriberStatusCallback connect_cb =
@@ -67,7 +91,6 @@ namespace rtsp_ffmpeg
   protected:
     boost::shared_ptr<ros::NodeHandle> nh, pnh;
     image_transport::CameraPublisher pub;
-    boost::shared_ptr<dynamic_reconfigure::Server<RTSPFFmpegConfig>> dyn_srv;
     RTSPFFmpegConfig config;
     std::mutex s_mutex, c_mutex, p_mutex;
     boost::shared_ptr<FFmpegDecoder> decoder;
@@ -289,39 +312,6 @@ namespace rtsp_ffmpeg
       disconnectionCallbackImpl();
     }
 
-    virtual void configCallback(RTSPFFmpegConfig &new_config, uint32_t level)
-    {
-      ROS_DEBUG("configCallback");
-
-      if (new_config.fps > new_config.set_camera_fps)
-      {
-        ROS_WARN_STREAM(
-            "Asked to publish at 'fps' (" << new_config.fps
-                                          << ") which is higher than the 'set_camera_fps' (" << new_config.set_camera_fps << "), we can't publish faster than the camera provides images.");
-        new_config.fps = new_config.set_camera_fps;
-      }
-
-      {
-        std::lock_guard<std::mutex> c_lock(c_mutex);
-        std::lock_guard<std::mutex> p_lock(p_mutex);
-        config = new_config;
-      }
-
-      // show current configuration
-      ROS_INFO_STREAM("Camera name: " << new_config.camera_name);
-      ROS_INFO_STREAM("Provided camera_info_url: '" << new_config.camera_info_url << "'");
-      ROS_INFO_STREAM("Publishing with frame_id: " << new_config.frame_id);
-      ROS_INFO_STREAM("Flip horizontal image is: " << ((new_config.flip_horizontal) ? "true" : "false"));
-      ROS_INFO_STREAM("Flip vertical image is: " << ((new_config.flip_vertical) ? "true" : "false"));
-
-      ROS_DEBUG_STREAM("subscriber_num: " << subscriber_num << " and level: " << level);
-      if (subscriber_num > 0 && (level & 0x1))
-      {
-        ROS_DEBUG("New dynamic_reconfigure config received on a parameter with configure level 1, unsubscribing and subscribing");
-        unsubscribe();
-        subscribe();
-      }
-    }
   };
 }
 

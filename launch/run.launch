@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="camera_name" default="front_camera" />
+  <arg name="camera_name" default="camera" />
   <arg name="rtsp_url" default="rtmp://ns8.indexforce.com/home/mystream" /><!-- 伊拉克 Al Sharqiya  -->
   <!-- <arg name="rtsp_url" default="rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov" />   -->
 
