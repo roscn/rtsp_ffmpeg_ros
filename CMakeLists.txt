@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
 )
 
-find_package(OpenCV)
+find_package(OpenCV 4)
 
 find_path(AVCODEC_INCLUDE_DIR libavcodec/avcodec.h)
 find_library(AVCODEC_LIBRARY avcodec)
@@ -52,6 +52,8 @@ include_directories(
   ${AVCODEC_INCLUDE_DIR}
 )
 
+message("OpenCV_INCLUDE_DIRS:"  ${OpenCV_INCLUDE_DIRS})
+message("OpenCV_LIBRARIES:"  ${OpenCV_LIBRARIES})
 add_library(${PROJECT_NAME} SHARED
   src/ffmpegdecoder.cpp
   src/rtsp_ffmpeg.cpp
