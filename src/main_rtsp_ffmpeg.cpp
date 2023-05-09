@@ -1,7 +1,5 @@
 
 #include <ros/ros.h>
-// #include <nodelet/nodelet.h>
-//#include <dynamic_reconfigure/server.h>
 #include <image_transport/image_transport.h>
 #include <camera_info_manager/camera_info_manager.h>
 #include <opencv2/highgui/highgui.hpp>
@@ -14,7 +12,6 @@
 #include <boost/thread/thread.hpp>
 #include <queue>
 #include <mutex>
-//#include <rtsp_ffmpeg/RTSPFFmpegConfig.h>
 #include <rtsp_ffmpeg/ffmpegdecoder.h>
 
 namespace fs = boost::filesystem;
@@ -195,7 +192,7 @@ namespace rtsp_ffmpeg
           catch (std::runtime_error &ex)
           {
             ROS_ERROR_STREAM("cannot change encoding to " << latest_config.output_encoding
-                                                              << ": " << ex.what());
+                                                          << ": " << ex.what());
           }
         }
         msg = cv_image->toImageMsg();
@@ -311,7 +308,6 @@ namespace rtsp_ffmpeg
     {
       disconnectionCallbackImpl();
     }
-
   };
 }
 

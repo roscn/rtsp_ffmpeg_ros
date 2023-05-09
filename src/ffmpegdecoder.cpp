@@ -1,39 +1,3 @@
-/*
- * Software License Agreement (Modified BSD License)
- *
- *  Copyright (c) 2016, PAL Robotics, S.L.
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- *     copyright notice, this list of conditions and the following
- *     disclaimer in the documentation and/or other materials provided
- *     with the distribution.
- *   * Neither the name of PAL Robotics, S.L. nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- *
- * @author Yonghye Kwon
- */
-
 #include <rtsp_ffmpeg/ffmpegdecoder.h>
 
 using namespace std;
@@ -68,21 +32,21 @@ void FFmpegDecoder::connect()
   char option_value2[] = "0";
   av_dict_set(&avdic, option_key2, option_value2, 0);
 
-  //char option_key3[]="fflags";
-  //char option_value3[]="nobuffer";
-  //av_dict_set(&avdic,option_key3,option_value3,0);
-  //char option_key4[]="flags";
-  //char option_value4[]="lowdelay";
-  //av_dict_set(&avdic,option_key4,option_value4,0);
-  //char option_key5[]="probesize";
-  //char option_value5[]="32";
-  //av_dict_set(&avdic,option_key5,option_value5,0);
-  //char option_key6[]="analyzeduration";
-  //char option_value6[]="0";
-  //av_dict_set(&avdic,option_key6,option_value6,0);
-  //char option_key7[]="strict";
-  //char option_value7[]="experimental";
-  //av_dict_set(&avdic,option_key7,option_value7,0);
+  // char option_key3[]="fflags";
+  // char option_value3[]="nobuffer";
+  // av_dict_set(&avdic,option_key3,option_value3,0);
+  // char option_key4[]="flags";
+  // char option_value4[]="lowdelay";
+  // av_dict_set(&avdic,option_key4,option_value4,0);
+  // char option_key5[]="probesize";
+  // char option_value5[]="32";
+  // av_dict_set(&avdic,option_key5,option_value5,0);
+  // char option_key6[]="analyzeduration";
+  // char option_value6[]="0";
+  // av_dict_set(&avdic,option_key6,option_value6,0);
+  // char option_key7[]="strict";
+  // char option_value7[]="experimental";
+  // av_dict_set(&avdic,option_key7,option_value7,0);
 
   if (avformat_open_input(&pFormatCtx, path.c_str(), NULL, &avdic) != 0)
   {
