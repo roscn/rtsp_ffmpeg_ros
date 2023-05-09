@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="camera_name" default="camera" />
+  <arg name="rtsp_url" default="rtmp://ns8.indexforce.com/home/mystream" /><!-- 伊拉克 Al Sharqiya  -->
+
+  <group ns="$(arg camera_name)">
+    <node pkg="rtsp_ffmpeg" type="ros_rtsp_ffmpeg_state_node" name="$(arg camera_name)_stream" output="screen"> 
+      <remap from="camera" to="image_raw" />
+      <param name="rtsp_url" type="string" value="$(arg rtsp_url)" />
+      <param name="img_topic" type="string" value="/image_raw" />
+      <param name="rate" type="double" value="10.0" />            
+    </node>
+  </group>
+
+</launch>

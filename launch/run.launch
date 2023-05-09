@@ -6,7 +6,7 @@
   <group ns="$(arg camera_name)">
     <node pkg="rtsp_ffmpeg" type="ros_rtsp_ffmpeg_node" name="$(arg camera_name)_stream" output="screen"> 
       <remap from="camera" to="image_raw" />
-      <param name="rtsp_url" type="string" value="$(arg rtsp_url)" />
+      <param name="rtsp_url" type="string" value="$(arg rtsp_url)" /> 
     </node>
   </group>
 

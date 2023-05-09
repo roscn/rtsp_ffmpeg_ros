@@ -12,7 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   camera_info_manager
   sensor_msgs
 )
-
+find_package(glog)
 find_package(OpenCV 4)
 
 find_path(AVCODEC_INCLUDE_DIR libavcodec/avcodec.h)
@@ -51,4 +51,8 @@ message("OpenCV_INCLUDE_DIRS:"  ${OpenCV_INCLUDE_DIRS})
 message("OpenCV_LIBRARIES:"  ${OpenCV_LIBRARIES})
 
 add_executable(ros_rtsp_ffmpeg_node src/main_rtsp_ffmpeg.cpp    src/ffmpegdecoder.cpp)
-target_link_libraries(ros_rtsp_ffmpeg_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY} ${SWSCALE_LIBRARY} ${AVCODEC_LIBRARY} )
+target_link_libraries(ros_rtsp_ffmpeg_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY} ${SWSCALE_LIBRARY} ${AVCODEC_LIBRARY}  glog)
+
+add_executable(ros_rtsp_ffmpeg_state_node src/main_rtsp_ffmpeg_state.cpp    src/ffmpegdecoder.cpp)
+target_link_libraries(ros_rtsp_ffmpeg_state_node ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${AVCODEC_LIBRARY} ${AVFORMAT_LIBRARY} ${AVUTIL_LIBRARY} ${AVDEVICE_LIBRARY} ${SWSCALE_LIBRARY} ${AVCODEC_LIBRARY}  glog)
+
